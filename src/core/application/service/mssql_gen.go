@@ -18,6 +18,7 @@ func GenerateMSSQLScriptsServiceInterfaceImpl() service.GenerateMSSQLScriptsServ
 func (*mssql_service) Generate(params parameters.DbGenParameters) string {
 	generateDbAndTables(params)
 	generateInsert(params)
+	generateBulkInserts(params)
 	generateReadADataByID(params)
 	generateReadWithPaging(params)
 	generateDelete(params)
@@ -145,23 +146,89 @@ func generateInsert(params parameters.DbGenParameters) {
 	}
 
 	filePath := "db/inserts.sql"
+	generateFile(&sb, filePath)
+}
 
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			fmt.Println(err)
-			return
+func generateBulkInserts(params parameters.DbGenParameters) {
+
+	var sb strings.Builder
+
+	for _, table := range params.Table {
+		sb.WriteString("\n")
+		sb.WriteString(fmt.Sprintf("-- Section for %s \n", table.TableName))
+		sb.WriteString(fmt.Sprintf("CREATE PROC sp_bulk_insert_%s\n", strings.ToLower(table.TableName)))
+		sb.WriteString(fmt.Sprintf("@%sJson nvarchar(MAX)\n", table.TableName))
+
+		var fieldsForInsert string = ""
+
+		fields := len(table.FieldCollections)
+		var countInsert int = 0
+		for _, field := range table.FieldCollections {
+
+			if countInsert == fields-1 {
+				fieldsForInsert += fmt.Sprintf("\t%s \n", field.FieldName)
+			} else {
+				fieldsForInsert += fmt.Sprintf("\t%s, \n", field.FieldName)
+			}
+			countInsert++
+
 		}
-		fmt.Println("File deleted successfully.")
+
+		var jsonifyFields string = ""
+
+		var countFields int = 0
+
+		for _, e := range table.FieldCollections {
+
+			transformToCamelCase := fmt.Sprintf("%s%s", strings.ToLower(string(e.FieldName[0])), e.FieldName[1:])
+
+			if countFields == fields-1 {
+
+				if e.DataType == constants.MSSQL_decimal || e.DataType == constants.MSSQL_numeric {
+					jsonifyFields += fmt.Sprintf("%s %s '$.%s'\n", e.FieldName, "(16,8)", transformToCamelCase)
+
+				} else {
+					jsonifyFields += fmt.Sprintf("%s %s '$.%s'\n", e.FieldName, e.DataType, transformToCamelCase)
+				}
+
+			} else {
+
+				if e.DataType == constants.MSSQL_decimal || e.DataType == constants.MSSQL_numeric {
+					jsonifyFields += fmt.Sprintf("%s %s '$.%s',\n ", e.FieldName, "(16,8)", transformToCamelCase)
+				} else {
+					jsonifyFields += fmt.Sprintf("%s %s '$.%s',\n ", e.FieldName, e.DataType, transformToCamelCase)
+
+				}
+
+			}
+
+			countFields++
+		}
+
+		sb.WriteString(fmt.Sprintf(`
+			AS
+			BEGIN
+
+				SET NOCOUNT ON;
+
+				DECLARE @StatusCode int
+				DECLARE @Message nvarchar(100)
+
+				INSERT INTO %s
+				SELECT %s
+				FROM OPENJSON(@%sJson)
+				WITH(
+					%s
+				)
+				SELECT @StatusCode, @Message
+			END
+		`, table.TableName, fieldsForInsert, table.TableName, jsonifyFields))
+
 	}
 
-	file, err := os.Create("db/inserts.sql")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer file.Close()
-	file.WriteString(sb.String())
+	filePath := "db/bulk_inserts.sql"
+	generateFile(&sb, filePath)
+
 }
 
 func generateReadADataByID(params parameters.DbGenParameters) {
@@ -224,23 +291,8 @@ func generateReadADataByID(params parameters.DbGenParameters) {
 	}
 
 	filePath := "db/read_by_ids.sql"
+	generateFile(&sb, filePath)
 
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("File deleted successfully.")
-	}
-
-	file, err := os.Create("db/read_by_ids.sql")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer file.Close()
-	file.WriteString(sb.String())
 }
 
 func generateReadWithPaging(params parameters.DbGenParameters) {
@@ -306,23 +358,8 @@ func generateReadWithPaging(params parameters.DbGenParameters) {
 	}
 
 	filePath := "db/read.sql"
+	generateFile(&sb, filePath)
 
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("File deleted successfully.")
-	}
-
-	file, err := os.Create("db/read.sql")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer file.Close()
-	file.WriteString(sb.String())
 }
 
 func generateDelete(params parameters.DbGenParameters) {
@@ -374,23 +411,8 @@ func generateDelete(params parameters.DbGenParameters) {
 	}
 
 	filePath := "db/delete.sql"
+	generateFile(&sb, filePath)
 
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("File deleted successfully.")
-	}
-
-	file, err := os.Create("db/delete.sql")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer file.Close()
-	file.WriteString(sb.String())
 }
 
 func generateUpdate(params parameters.DbGenParameters) {
@@ -463,23 +485,7 @@ func generateUpdate(params parameters.DbGenParameters) {
 	}
 
 	filePath := "db/update.sql"
-
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("File deleted successfully.")
-	}
-
-	file, err := os.Create("db/update.sql")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer file.Close()
-	file.WriteString(sb.String())
+	generateFile(&sb, filePath)
 }
 
 func createField(field parameters.Fields, countFields, fields int, isTable bool) string {
@@ -505,22 +511,75 @@ func createField(field parameters.Fields, countFields, fields int, isTable bool)
 	}
 
 	// TODO : Too much complexity
-
+	f := fields - 1
 	if isTable {
-
-		if countFields == fields-1 {
-			columns.WriteString(fmt.Sprintf("\t%s %s%s %s %s \n", field.FieldName, field.DataType, hasLength, allowNullable, hasPrimaryKey))
-		} else {
-			columns.WriteString(fmt.Sprintf("\t%s %s%s %s %s, \n", field.FieldName, field.DataType, hasLength, allowNullable, hasPrimaryKey))
-		}
+		fieldsNonParameters(&columns, countFields, f, &field, &hasLength, &allowNullable, &hasPrimaryKey)
 	} else {
 
-		if countFields == fields-1 {
-			columns.WriteString(fmt.Sprintf("\t@%s %s%s \n", field.FieldName, field.DataType, hasLength))
-		} else {
-			columns.WriteString(fmt.Sprintf("\t@%s %s%s, \n", field.FieldName, field.DataType, hasLength))
-		}
+		fieldsWithParameters(&columns, countFields, f, &field, &hasLength, &allowNullable, &hasPrimaryKey)
 	}
 
 	return columns.String()
+}
+
+func fieldsWithParameters(columns *strings.Builder, counFields, fieldsTotal int, field *parameters.Fields, hasLength, allowNullable, hasPrimaryKey *string) {
+	if counFields == fieldsTotal {
+
+		if field.DataType == constants.MSSQL_decimal || field.DataType == constants.MSSQL_numeric {
+			columns.WriteString(fmt.Sprintf("\t@%v %v%v \n", field.FieldName, field.DataType, "(16,8)"))
+		} else {
+			columns.WriteString(fmt.Sprintf("\t@%v %v%v \n", field.FieldName, field.DataType, *hasLength))
+		}
+
+	} else {
+
+		if field.DataType == constants.MSSQL_decimal || field.DataType == constants.MSSQL_numeric {
+			columns.WriteString(fmt.Sprintf("\t@%v %v%v \n", field.FieldName, field.DataType, "(16,8),"))
+		} else {
+			columns.WriteString(fmt.Sprintf("\t@%v %v%v, \n", field.FieldName, field.DataType, *hasLength))
+		}
+
+	}
+}
+
+func fieldsNonParameters(columns *strings.Builder, counFields, fieldsTotal int, field *parameters.Fields, hasLength, allowNullable, hasPrimaryKey *string) {
+	if counFields == fieldsTotal {
+
+		if field.DataType == constants.MSSQL_decimal || field.DataType == constants.MSSQL_numeric {
+			columns.WriteString(fmt.Sprintf("\t%v %v%v \n", field.FieldName, field.DataType, "(16,8)"))
+		} else {
+			columns.WriteString(fmt.Sprintf("\t%v %v%v %v %v \n", field.FieldName, field.DataType, *hasLength, *allowNullable, *hasPrimaryKey))
+		}
+
+	} else {
+
+		if field.DataType == constants.MSSQL_decimal || field.DataType == constants.MSSQL_numeric {
+			columns.WriteString(fmt.Sprintf("\t%v %v%v \n", field.FieldName, field.DataType, "(16,8),"))
+		} else {
+			columns.WriteString(fmt.Sprintf("\t%v %v%v %v %v, \n", field.FieldName, field.DataType, *hasLength, *allowNullable, *hasPrimaryKey))
+		}
+
+	}
+}
+
+func generateFile(sb *strings.Builder, fileName string) {
+	filePath := fileName
+
+	if _, err := os.Stat(filePath); err == nil {
+		err = os.Remove(filePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("File deleted successfully.")
+	}
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	file.WriteString(sb.String())
+
 }

@@ -8,7 +8,7 @@ CREATE PROC sp_read_by_id_products
 				IF EXISTS(SELECT 1 FROM Products WHERE Id=@Id) 
 				BEGIN
 					SET @StatusCode = 200
-					SET @json=(	SELECT Id 'id', ProductName 'productName', Price 'price', isActive 'isActive', CreatedDate 'createdDate' FROM Products WHERE Id=@Id)
+					SET @json=(	SELECT Id 'id', ProductName 'productName', Price 'price', isActive 'isActive', CreatedDate 'createdDate', CreatedBy 'createdBy' FROM Products WHERE Id=@Id)
 					
 					SET @StatusCode=200
 					SELECT @StatusCode as code, @json as json
@@ -32,7 +32,7 @@ CREATE PROC sp_read_by_id_branches
 				IF EXISTS(SELECT 1 FROM Branches WHERE ID=@ID) 
 				BEGIN
 					SET @StatusCode = 200
-					SET @json=(	SELECT ID 'iD', BranchName 'branchName' FROM Branches WHERE ID=@ID)
+					SET @json=(	SELECT ID 'iD', BranchName 'branchName', Manager 'manager', Manager 'manager' FROM Branches WHERE ID=@ID)
 					
 					SET @StatusCode=200
 					SELECT @StatusCode as code, @json as json

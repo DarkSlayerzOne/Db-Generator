@@ -3,9 +3,10 @@
 CREATE PROC sp_update_products
 	@Id nvarchar(255), 
 	@ProductName nvarchar(255), 
-	@Price decimal, 
+	@Price decimal(16,8), 
 	@isActive bit, 
-	@CreatedDate datetime 
+	@CreatedDate datetime, 
+	@CreatedBy nvarchar 
 AS
 		BEGIN
 			SET NOCOUNT ON;
@@ -25,7 +26,7 @@ AS
 		
 			BEGIN
 				UPDATE Products SET 
-							CreatedDate=@CreatedDate 
+							CreatedBy=@CreatedBy 
 
 						WHERE Id=@Id
 
@@ -42,7 +43,9 @@ AS
 -- Section for Branches 
 CREATE PROC sp_update_branches
 	@ID nvarchar(255), 
-	@BranchName nvarchar(255) 
+	@BranchName nvarchar(255), 
+	@Manager nvarchar(555), 
+	@Manager nvarchar(555) 
 AS
 		BEGIN
 			SET NOCOUNT ON;
@@ -62,7 +65,7 @@ AS
 		
 			BEGIN
 				UPDATE Branches SET 
-							BranchName=@BranchName 
+							Manager=@Manager 
 
 						WHERE ID=@ID
 

@@ -14,7 +14,7 @@ CREATE PROC sp_read_products
 			SET @json =(
 				
 			  	SELECT 
-				Id 'id', ProductName 'productName', Price 'price', isActive 'isActive', CreatedDate 'createdDate'
+				Id 'id', ProductName 'productName', Price 'price', isActive 'isActive', CreatedDate 'createdDate', CreatedBy 'createdBy'
 				-- Please change the order by to an available column in the table
 				FROM Products ORDER BY CreatedDate DESC
 				OFFSET @Row * (@Offset -1) ROWS
@@ -43,7 +43,7 @@ CREATE PROC sp_read_branches
 			SET @json =(
 				
 			  	SELECT 
-				ID 'iD', BranchName 'branchName'
+				ID 'iD', BranchName 'branchName', Manager 'manager', Manager 'manager'
 				-- Please change the order by to an available column in the table
 				FROM Branches ORDER BY '' DESC
 				OFFSET @Row * (@Offset -1) ROWS

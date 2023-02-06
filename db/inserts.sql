@@ -3,9 +3,10 @@
 CREATE PROC sp_add_products
 	@Id nvarchar(255), 
 	@ProductName nvarchar(255), 
-	@Price decimal, 
+	@Price decimal(16,8), 
 	@isActive bit, 
-	@CreatedDate datetime 
+	@CreatedDate datetime, 
+	@CreatedBy nvarchar 
 AS
 			BEGIN
 				SET NOCOUNT ON;
@@ -17,7 +18,8 @@ AS
 	ProductName, 
 	Price, 
 	isActive, 
-	CreatedDate 
+	CreatedDate, 
+	CreatedBy 
 
 							)
 							VALUES
@@ -26,7 +28,8 @@ AS
 	@ProductName, 
 	@Price, 
 	@isActive, 
-	@CreatedDate 
+	@CreatedDate, 
+	@CreatedBy 
 
 							)
 			 SET @StatusCode = 201
@@ -40,7 +43,9 @@ AS
 -- Section for Branches 
 CREATE PROC sp_add_branches
 	@ID nvarchar(255), 
-	@BranchName nvarchar(255) 
+	@BranchName nvarchar(255), 
+	@Manager nvarchar(555), 
+	@Manager nvarchar(555) 
 AS
 			BEGIN
 				SET NOCOUNT ON;
@@ -49,13 +54,17 @@ AS
 
 				INSERT INTO Branches	
 				(	ID, 
-	BranchName 
+	BranchName, 
+	Manager, 
+	Manager 
 
 							)
 							VALUES
 						   (
 	@ID, 
-	@BranchName 
+	@BranchName, 
+	@Manager, 
+	@Manager 
 
 							)
 			 SET @StatusCode = 201
